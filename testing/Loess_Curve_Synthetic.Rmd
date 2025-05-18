@@ -1,0 +1,84 @@
+---
+title: "Compare"
+author: "Jihwan Kim"
+date: "2025-05-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# yoyoyo
+```
+
+# Plot the LOESS Stamp Collection for All 95 Proteins
+
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(tidyverse)
+library(ggforce)
+
+df <- read.csv('/Users/jihwan/Kathy\ Murphy\ Dropbox/Jihwan\ Kim/Jihwan_Kim/sugar_demo/synthetic_data.csv')
+col <- colnames(df)
+proteins <-  col[3:length(col)]
+
+protein.exp.zscore.df <- df %>%
+    mutate_at(proteins, scale)
+
+  # Get long version of z-scored data
+  protein.exp.zscore.long.df <- protein.exp.zscore.df %>%
+    pivot_longer(
+      cols = all_of(proteins),
+      names_to = "Protein",
+      values_to = "Expression"
+    )
+  
+  age.breaks <- c(0, 2/12, 6/12, 1, 2, 4, 8, 16, 32, 64, 90)
+  age.labels <- c("0", "2 M", "6 M", "1 Y", "2 Y", "4 Y", "8 Y", "16 Y",
+                       "32 Y", "64 Y", "90 Y")
+
+```
+
+
+```{r}
+all.protein.loess.CI.scatterplot <- ggplot(
+  data = protein.exp.zscore.long.df,
+  aes(x = Years, y = Expression, color = Sex)) +
+  geom_smooth(
+    method = "loess", se = F, linewidth = 0.5, aes(fill = Sex),
+    method.args = list(degree = 2, family = "gaussian")
+  ) +
+  #geom_point(size = 0.5) +
+  scale_x_continuous(
+   name = "Age (Years)",
+   trans = "log2", ### log2 transforms the X-axis.
+   limits = c(0.2, 90),
+   breaks = age.breaks,
+   labels = age.labels
+  ) +
+  scale_y_continuous(
+    name = " Expression (Z-score)",
+    #limits = c(-3,3),
+    labels = scales::number_format(accuracy = 0.1)
+  ) +
+  theme_bw() +
+  ggtitle("Developmental Trajectories for 95 Proteins") +
+  theme(
+    axis.text.x = element_text(angle = 90, size = 5),
+    axis.text.y = element_text(size = 5),
+    axis.title.y = element_text(size = 7),
+    axis.title.x = element_text(size = 7),
+    plot.title = element_text(size = 8),
+    legend.title = element_text(size = 7),
+    legend.text = element_text(size = 7),
+    strip.text = element_text(size = 7, margin = margin(b = 0, t = 0)),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    aspect.ratio = 5 / 7
+  ) +
+  facet_wrap_paginate(~Protein, ncol=10, nrow=10, scales= "free_y")
+
+print(all.protein.loess.CI.scatterplot)
+```
